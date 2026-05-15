@@ -1,0 +1,42 @@
+# Cloudflare Worker configuration.
+#
+# This file is consumed by `wrangler deploy` AND by the "Deploy to Cloudflare"
+# button on the README. Cloudflare's deploy-button UI reads `[vars]` and
+# `[[kv_namespaces]]` to prompt the user for the values it needs.
+
+name = "obsidian-fathom-sync-worker"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+
+# KV namespace where we store delivered payloads. The Deploy button will
+# auto-provision this in the user's account and inject the binding id.
+[[kv_namespaces]]
+binding = "DELIVERIES"
+id = "c7d100b93a934dc8bbcaa0a6748be0d4"
+preview_id = "REPLACE_WITH_KV_ID"
+
+# Secrets — DO NOT add to [vars].
+#
+# This Worker reads two values from the environment:
+#
+#   PLUGIN_BEARER_TOKEN   — the shared bearer the Obsidian plugin presents
+#                           in `Authorization: Bearer …` when polling /pending
+#                           and /ack. If this leaks, anyone can drain your
+#                           Fathom meeting payloads.
+#
+#   FATHOM_WEBHOOK_SECRET — the Svix HMAC key Fathom returns at webhook
+#                           registration time. If this leaks, anyone can
+#                           forge webhook deliveries into your Worker.
+#
+# Both MUST be set as Cloudflare Worker SECRETS, not plain [vars]:
+#
+#   wrangler secret put PLUGIN_BEARER_TOKEN
+#   wrangler secret put FATHOM_WEBHOOK_SECRET
+#
+# Secrets are encrypted at rest on Cloudflare and are not visible in the
+# dashboard or in `wrangler.toml`. [vars] would be visible to anyone with
+# Worker read access and would end up in every fork of this template.
+#
+# The Worker fails closed when either is missing — see env validation in
+# src/index.ts so a forgotten secret produces a 500 with a clear error,
+# not a silently-unauthenticated endpoint.
